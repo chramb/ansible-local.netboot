@@ -1,0 +1,56 @@
+#version=DEVEL
+# System authorization information
+auth --enableshadow --passalgo=sha512
+## # Use CDROM installation media
+##cdrom
+
+# Changes from default andconda-ks.cfg
+firewall --disable
+#url --url="http://10.42.0.1/centos" --proxy="http://10.42.0.1:8888"
+url --url="http://mirror.centos.org/centos/7/os/x86_64/" --proxy="http://10.42.0.1:8888"
+
+
+# Use graphical install
+graphical
+# Run the Setup Agent on first boot
+firstboot --enable
+ignoredisk --only-use=vda
+# Keyboard layouts
+keyboard --vckeymap=pl --xlayouts='pl'
+# System language
+lang en_US.UTF-8
+
+# Network information
+network  --bootproto=dhcp --device=eth0 --ipv6=auto --activate
+network  --hostname=centos.lab
+
+#Root password
+rootpw --lock
+# System services
+#services --enabled="chronyd"
+# System timezone
+timezone Europe/Warsaw --isUtc
+user --groups=wheel --name=user --password=$6$U85t61oA9XY5yIOK$8Itj7unG3m35JK1NpD46KAAVgCkr.PQTW5y6jHrhNz.cbkAQ/PFZdMGGfOY6S21yP6nDJpd.vGyAWSHwd.HIn0 --iscrypted --gecos="user"
+# System bootloader configuration
+bootloader --append=" crashkernel=auto" --location=mbr --boot-drive=vda
+autopart --type=lvm
+# Partition clearing information
+clearpart --all --drives=vda --initlabel
+
+%packages
+@^minimal
+#@core
+#chrony
+#kexec-tools
+
+%end
+
+%addon com_redhat_kdump --enable --reserve-mb='auto'
+
+%end
+
+%anaconda
+pwpolicy root --minlen=6 --minquality=1 --notstrict --nochanges --notempty
+pwpolicy user --minlen=6 --minquality=1 --notstrict --nochanges --emptyok
+pwpolicy luks --minlen=6 --minquality=1 --notstrict --nochanges --notempty
+%end

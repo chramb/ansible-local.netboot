@@ -1,0 +1,25 @@
+# /etc/dnsmasq.conf
+# vi: ft=dnsmasq
+
+# DNS
+port=0 # disable DNS function
+
+# DHCP
+interface={{ ansible_interfaces | map('regex_replace', '^', 'ansible_') | map('extract', vars) | selectattr('ipv4.address', 'match', '10\\.42\\.0\\.1') | map(attribute='device') | first }}
+dhcp-option=3,0.0.0.0
+dhcp-range=10.42.0.2,10.42.0.25,1h
+
+# TFTP
+enable-tftp
+tftp-root=/srv/tftp
+# tftp-secure
+
+# PXE
+dhcp-boot=lpxelinux.0
+# dhcp-match=set:efi-x86_64,option:client-arch,7
+# dhcp-match=set:efi-x86_64,option:client-arch,9
+# dhcp-match=set:efi-x86,option:client-arch,6
+# dhcp-match=set:bios,option:client-arch,0
+# dhcp-boot=tag:efi-x86_64,efi64/syslinux.efi
+# dhcp-boot=tag:efi-x86,efi32/syslinux.efi
+# dhcp-boot=tag:bios,bios/lpxelinux.0

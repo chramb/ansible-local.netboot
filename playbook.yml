@@ -1,0 +1,93 @@
+---
+- name: "Ansible playbook example"
+  hosts: localhost
+  connection: local
+
+  become: true
+  tasks:
+    - name: "Install packages"
+      ansible.builtin.package:
+        name:
+          - mosh
+          - dnsmasq
+          - tinyproxy-bin
+          - pxelinux
+          - syslinux-common
+        state: present
+    - name: "Create needed directories"
+      ansible.builtin.file:
+        path: "{{ item }}"
+        mode: "775" # 770 
+        state: directory
+      loop:
+        - /srv/
+        - /srv/http/
+        - /srv/http/centos
+        - /srv/tftp/
+        - /srv/tftp/pxelinux.cfg/
+        - /srv/tftp/netboot
+
+    - name: "Apply templates"
+      ansible.builtin.template:
+        src: templates/{{ item.src }}.j2
+        dest: "{{ item.dest }}"
+        owner: root
+        group: root
+        mode: 444
+      loop:
+        - { src: nginx.conf, dest: /etc/nginx/nginx.conf }
+        - { src: dnsmasq.conf, dest: /etc/dnsmasq.conf }
+        - { src: tinyproxy.conf, dest: /etc/tinyproxy/tinyproxy.conf }
+        - { src: kickstart.conf, dest: /srv/http/ks.cfg }
+        - { src: pxelinux.conf.default, dest: /srv/tftp/pxelinux.cfg/default }
+
+    - name: "Restart configured services" 
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: restarted
+      loop:
+        - nginx
+        - dnsmasq
+        - tinyproxy
+
+    - name: "Download Centos ISO"
+      ansible.builtin.get_url:
+        url: http://ftp.agh.edu.pl/centos/7.9.2009/isos/x86_64/CentOS-7-x86_64-DVD-2009.iso
+        dest: /srv/http/CentOS-7-x86_64-DVD-2009.iso
+        checksum: sha256:e33d7b1ea7a9e2f38c8f693215dd85254c3a4fe446f93f563279715b68d07987
+
+    - name: "Mount iso"
+      ansible.builtin.command: 
+        argv: 
+          - /usr/bin/mount 
+          - -o 
+          - ro 
+          - /srv/http/CentOS-7-x86_64-DVD-2009.iso
+          - /srv/http/centos
+        creates: /srv/http/centos/CentOS_BuildTag
+        
+#   - name: "Mount iso"
+#     ansible.posix.mount:
+#       path: /srv/http/centos
+#       src: /srv/http/CentOS-7-x86_64-Minimal-2207-02.iso
+#       opts: ro,noauto
+#       state: mounted
+
+    - name: "Copy kernel and initrd"
+      ansible.builtin.copy:
+        src: /srv/http/centos/images/pxeboot/{{ item }}
+        dest: /srv/tftp/netboot/{{ item }}
+      loop:
+        - initrd.img
+        - vmlinuz
+
+    - name: "Copy netboot files"
+      ansible.builtin.copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+      loop:
+        - { src: /usr/lib/syslinux/modules/bios/menu.c32, dest: /srv/tftp/menu.c32 }
+        - { src: /usr/lib/PXELINUX/lpxelinux.0, dest: /srv/tftp/lpxelinux.0 }
+        - { src: /usr/lib/syslinux/modules/bios/ldlinux.c32, dest: /srv/tftp/ldlinux.c32 }
+        - { src: /usr/lib/syslinux/modules/bios/libutil.c32, dest: /srv/tftp/libutil.c32 }
+

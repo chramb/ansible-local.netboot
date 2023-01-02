@@ -1,0 +1,10 @@
+default menu.c32
+prompt 0
+timeout 20
+
+MENU TITLE PXE Boot Menu
+
+LABEL centos7
+    MENU LABEL Centos 7 (BIOS x64)
+    KERNEL /netboot/vmlinuz
+    APPEND initrd=/netboot/initrd.img ip=dhcp inst.repo=http://10.42.0.1/centos ks=http://10.42.0.1/ks.cfg
